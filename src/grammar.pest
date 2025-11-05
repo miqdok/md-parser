@@ -1,0 +1,30 @@
+WHITESPACE = _{ " " | "\t" }
+
+document = { SOI ~ block* ~ EOI }
+
+block = { header | list_point | paragraph }
+
+header = { header_start ~ line_content ~ new_line }
+list_point = { list_start ~ line_content ~ new_line }
+paragraph = { paragraph_line+ }
+
+paragraph_line = { !(header_start | list_start) ~ line_content ~ new_line }
+
+line_content = { (bold_italic | bold | italic | char)* }
+bold_italic = { "***" ~ not_bold_italic_char* ~ "***" }
+bold = { "**" ~ not_bold_char* ~ "**" }
+italic = { "*" ~ not_italic_char* ~ "*" }
+
+not_bold_italic_char = { !("***" | new_line) ~ ANY }
+not_bold_char = { !("**" | new_line) ~ ANY }
+not_italic_char = { !("*" | new_line) ~ ANY }
+char = { !(new_line) ~ ANY }
+
+header_start = { "#"{1,6} ~ !("#") ~ "" }
+list_start = { unordered | ordered }
+
+unordered = { "- " | "* " }
+ordered = { digit+ ~ ". " }
+
+digit = { '0'..'9' }
+new_line = { "\r\n" | "\n" }
