@@ -1,4 +1,4 @@
-WHITESPACE = _{ " " | "\t" }
+WHITESPACE = { " " | "\t" }
 
 document = { SOI ~ block* ~ EOI }
 
@@ -10,14 +10,14 @@ paragraph = { paragraph_line+ }
 
 paragraph_line = { !(header_start | list_start) ~ line_content ~ new_line }
 
-line_content = { (bold_italic | bold | italic | char)* }
+line_content = { (bold_italic | bold | italic | char | WHITESPACE)* }
 bold_italic = { "***" ~ not_bold_italic_char* ~ "***" }
 bold = { "**" ~ not_bold_char* ~ "**" }
 italic = { "*" ~ not_italic_char* ~ "*" }
 
-not_bold_italic_char = { !("***" | new_line) ~ ANY }
-not_bold_char = { !("**" | new_line) ~ ANY }
-not_italic_char = { !("*" | new_line) ~ ANY }
+not_bold_italic_char = { !("***" | new_line) ~ (WHITESPACE | char) }
+not_bold_char = { !("**" | new_line) ~ (WHITESPACE | char) }
+not_italic_char = { !("*" | new_line) ~ (WHITESPACE | char) }
 char = { !(new_line) ~ ANY }
 
 header_start = { "#"{1,6} ~ !("#") ~ "" }
