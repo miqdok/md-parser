@@ -45,18 +45,27 @@ fn convert_pair_to_html(pair: pest::iterators::Pair<Rule>) -> String {
 
             format!("<h{}>{}</h{}>\n", level, content, level)
         }
-        Rule::list_point => {
+        Rule::unordered_list => {
+            let items = convert_inner_to_html(pair);
+            format!("<ul>\n{}\n</ul>\n", items.trim())
+        }
+        Rule::ordered_list => {
+            let items = convert_inner_to_html(pair);
+            format!("<ol>\n{}\n</ol>\n", items.trim())
+        }
+        Rule::unordered_list_point => {
             let mut inner = pair.into_inner();
-            let list_start = inner.next().unwrap();
+            inner.next().unwrap();
             let line_content = inner.next().unwrap();
-
             let content = convert_pair_to_html(line_content);
-
-            match list_start.as_rule() {
-                Rule::unordered => format!("<li>{}</li>\n", content),
-                Rule::ordered => format!("<li>{}</li>\n", content),
-                _ => format!("<li>{}</li>\n", content),
-            }
+            format!("<li>{}</li>\n", content)
+        }
+        Rule::ordered_list_point => {
+            let mut inner = pair.into_inner();
+            inner.next().unwrap();
+            let line_content = inner.next().unwrap();
+            let content = convert_pair_to_html(line_content);
+            format!("<li>{}</li>\n", content)
         }
         Rule::paragraph => {
             let content = convert_inner_to_html(pair);
@@ -116,8 +125,20 @@ mod tests {
     fn test_parse_unordered_list() {
         let markdown = "- Point 1\n- Point 2\n";
         let html = parse_to_html(markdown).unwrap();
+        assert!(html.contains("<ul>"));
+        assert!(html.contains("</ul>"));
         assert!(html.contains("<li>Point 1</li>"));
         assert!(html.contains("<li>Point 2</li>"));
+    }
+
+    #[test]
+    fn test_parse_ordered_list() {
+        let markdown = "1. First point\n2. Second point\n";
+        let html = parse_to_html(markdown).unwrap();
+        assert!(html.contains("<ol>"));
+        assert!(html.contains("</ol>"));
+        assert!(html.contains("<li>First point</li>"));
+        assert!(html.contains("<li>Second point</li>"));
     }
 
     #[test]

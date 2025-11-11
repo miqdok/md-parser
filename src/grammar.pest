@@ -2,13 +2,16 @@ WHITESPACE = { " " | "\t" }
 
 document = { SOI ~ block* ~ EOI }
 
-block = { header | list_point | paragraph }
+block = { header | unordered_list | ordered_list | paragraph }
 
 header = { header_start ~ line_content ~ new_line }
-list_point = { list_start ~ line_content ~ new_line }
+unordered_list = { unordered_list_point+ }
+ordered_list = { ordered_list_point+ }
 paragraph = { paragraph_line+ }
 
-paragraph_line = { !(header_start | list_start) ~ line_content ~ new_line }
+paragraph_line = { !(header_start | unordered_start | ordered_start) ~ line_content ~ new_line }
+unordered_list_point = { unordered_start ~ line_content ~ new_line }
+ordered_list_point = { ordered_start ~ line_content ~ new_line }
 
 line_content = { (bold_italic | bold | italic | char | WHITESPACE)* }
 bold_italic = { "***" ~ not_bold_italic_char* ~ "***" }
@@ -21,10 +24,8 @@ not_italic_char = { !("*" | new_line) ~ (WHITESPACE | char) }
 char = { !(new_line) ~ ANY }
 
 header_start = { "#"{1,6} ~ !("#") ~ "" }
-list_start = { unordered | ordered }
-
-unordered = { "- " | "* " }
-ordered = { digit+ ~ ". " }
+unordered_start = { "- " | "* " }
+ordered_start = { digit+ ~ ". " }
 
 digit = { '0'..'9' }
 new_line = { "\r\n" | "\n" }

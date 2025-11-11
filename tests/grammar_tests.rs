@@ -66,9 +66,9 @@ fn test_fail_on_mismatched_bold() {
 
 
 #[test]
-fn test_parse_unordered() -> Result<()> {
+fn test_parse_unordered_start() -> Result<()> {
     let input = "* ";
-    let pair = MarkdownParser::parse(Rule::unordered, input)?
+    let pair = MarkdownParser::parse(Rule::unordered_start, input)?
         .next()
         .ok_or_else(|| anyhow!("no pair"))?;
 
@@ -78,9 +78,9 @@ fn test_parse_unordered() -> Result<()> {
 }
 
 #[test]
-fn test_parse_ordered() -> Result<()> {
+fn test_parse_ordered_start() -> Result<()> {
     let input = "1. ";
-    let pair = MarkdownParser::parse(Rule::ordered, input)?
+    let pair = MarkdownParser::parse(Rule::ordered_start, input)?
         .next()
         .ok_or_else(|| anyhow!("no pair"))?;
 
@@ -90,14 +90,24 @@ fn test_parse_ordered() -> Result<()> {
 }
 
 #[test]
-fn test_parse_list_start() -> Result<()> {
-    let input = "- ";
-    let pair = MarkdownParser::parse(Rule::list_start, input)?
+fn test_parse_unordered_list_point() -> Result<()> {
+    let input = "- List point\n";
+    let pair = MarkdownParser::parse(Rule::unordered_list_point, input)?
         .next()
         .ok_or_else(|| anyhow!("no pair"))?;
 
     assert_eq!(pair.as_str(), input);
+    Ok(())
+}
 
+#[test]
+fn test_parse_ordered_list_point() -> Result<()> {
+    let input = "1. List point\n";
+    let pair = MarkdownParser::parse(Rule::ordered_list_point, input)?
+        .next()
+        .ok_or_else(|| anyhow!("no pair"))?;
+
+    assert_eq!(pair.as_str(), input);
     Ok(())
 }
 
@@ -139,9 +149,20 @@ fn test_parse_line_with_literal_asterisk() -> Result<()> {
 }
 
 #[test]
-fn test_parse_list_point() -> Result<()> {
-    let input = "* List point\n";
-    let pair = MarkdownParser::parse(Rule::list_point, input)?
+fn test_parse_unordered_list() -> Result<()> {
+    let input = "- First point\n- Second point\n";
+    let pair = MarkdownParser::parse(Rule::unordered_list, input)?
+        .next()
+        .ok_or_else(|| anyhow!("no pair"))?;
+
+    assert_eq!(pair.as_str(), input);
+    Ok(())
+}
+
+#[test]
+fn test_parse_ordered_list() -> Result<()> {
+    let input = "1. First point\n2. Second point\n";
+    let pair = MarkdownParser::parse(Rule::ordered_list, input)?
         .next()
         .ok_or_else(|| anyhow!("no pair"))?;
 
