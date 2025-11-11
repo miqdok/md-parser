@@ -1,6 +1,7 @@
 use std::env;
 use std::fs;
 use std::process;
+use anyhow::{Context, Result};
 use md_parser::parse_to_html;
 
 fn main() {
@@ -10,7 +11,7 @@ fn main() {
     }
 }
 
-fn run() -> Result<(), String> {
+fn run() -> Result<()> {
     let args: Vec<String> = env::args().collect();
 
     let program_name = args.get(0).cloned().unwrap_or_else(|| "md-parser".to_string());
@@ -19,7 +20,7 @@ fn run() -> Result<(), String> {
     match command {
         Some("parse") => {
             let file_path = args.get(2)
-                .ok_or("'parse' command requires a file argument")?;
+                .ok_or_else(|| anyhow::anyhow!("'parse' command requires a file argument"))?;
 
             let mut output_file = None;
             let mut args_iter = args.iter().skip(3); // skip [program, parse, file]
@@ -28,11 +29,11 @@ fn run() -> Result<(), String> {
                 match arg.as_str() {
                     "--output" => {
                         let next_arg = args_iter.next()
-                            .ok_or("--output flag requires a filename")?;
+                            .ok_or_else(|| anyhow::anyhow!("--output flag requires a filename"))?;
                         output_file = Some(next_arg);
                     }
                     _ => {
-                        return Err(format!("Unknown argument '{}'", arg));
+                        return Err(anyhow::anyhow!("Unknown argument '{}'", arg));
                     }
                 }
             }
@@ -46,7 +47,7 @@ fn run() -> Result<(), String> {
         }
         Some(unknown_cmd) => {
             print_usage(&program_name);
-            return Err(format!("Unknown command '{}'", unknown_cmd));
+            return Err(anyhow::anyhow!("Unknown command '{}'", unknown_cmd));
         }
         None => {
             print_usage(&program_name);
@@ -56,19 +57,20 @@ fn run() -> Result<(), String> {
     Ok(())
 }
 
-fn run_parse(file_path: &str, output_file: Option<&str>) -> Result<(), String> {
+fn run_parse(file_path: &str, output_file: Option<&str>) -> Result<()> {
     println!("Parsing markdown file: {}", file_path);
 
     let content = fs::read_to_string(file_path)
-        .map_err(|e| format!("Failed to read file '{}': {}", file_path, e))?;
+        .with_context(|| format!("Failed to read file '{}'", file_path))?;
 
     println!("Parsing markdown...");
-    let html = parse_to_html(&content)?;
+    let html = parse_to_html(&content)
+        .with_context(|| "Failed to parse markdown content")?;
     println!("Parse successful!");
 
     if let Some(output_path) = output_file {
         fs::write(output_path, &html)
-            .map_err(|e| format!("Error writing to file '{}': {}", output_path, e))?;
+            .with_context(|| format!("Error writing to file '{}'", output_path))?;
 
         println!("HTML saved to: {}", output_path);
 

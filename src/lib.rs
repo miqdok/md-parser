@@ -1,32 +1,67 @@
 use pest_derive::Parser;
 use pest::Parser;
+use thiserror::Error;
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 pub struct MarkdownParser;
 
-pub fn parse_to_html(markdown: &str) -> Result<String, String> {
+#[derive(Error, Debug)]
+pub enum MarkdownError {
+    #[error("Parse error at {line}:{column}: {source}")]
+    ParseError {
+        line: usize,
+        column: usize,
+        #[source]
+        source: pest::error::Error<Rule>,
+    },
+    #[error("Invalid structure in {rule}: expected {expected} but got {actual}")]
+    InvalidStructure {
+        rule: String,
+        expected: String,
+        actual: String,
+    },
+}
+
+pub fn parse_to_html(markdown: &str) -> Result<String, MarkdownError> {
     match MarkdownParser::parse(Rule::document, markdown) {
         Ok(pairs) => {
             let mut html = String::new();
             for pair in pairs {
-                html.push_str(&convert_pair_to_html(pair));
+                html.push_str(&convert_pair_to_html(pair)?);
             }
             Ok(html)
         }
-        Err(e) => Err(format!("Parse error: {}", e))
+        Err(e) => {
+            match e.line_col {
+                pest::error::LineColLocation::Pos((line, column)) => {                                                                         
+                    Err(MarkdownError::ParseError {
+                            line,
+                            column,
+                            source: e,
+                        })
+                    }
+                pest::error::LineColLocation::Span((start_line, start_col), (_end_line, _end_col)) => {
+                    Err(MarkdownError::ParseError {
+                        line: start_line,
+                        column: start_col,
+                        source: e,
+                    })
+                }
+            }
+        }
     }
 }
 
-fn convert_inner_to_html(pair: pest::iterators::Pair<Rule>) -> String {
+fn convert_inner_to_html(pair: pest::iterators::Pair<Rule>) -> Result<String, MarkdownError> {
     let mut html = String::new();
     for child in pair.into_inner() {
-        html.push_str(&convert_pair_to_html(child));
+        html.push_str(&convert_pair_to_html(child)?);
     }
-    html
+    Ok(html)
 }
 
-fn convert_pair_to_html(pair: pest::iterators::Pair<Rule>) -> String {
+fn convert_pair_to_html(pair: pest::iterators::Pair<Rule>) -> Result<String, MarkdownError> {
     match pair.as_rule() {
         Rule::document |
         Rule::block |
@@ -37,57 +72,47 @@ fn convert_pair_to_html(pair: pest::iterators::Pair<Rule>) -> String {
 
         Rule::header => {
             let mut inner = pair.into_inner();
-            let header_start = inner.next().unwrap();
+            let header_start = inner.next().unwrap(); 
             let line_content = inner.next().unwrap();
 
             let level = header_start.as_str().trim().len();
-            let content = convert_pair_to_html(line_content);
+            let content = convert_pair_to_html(line_content)?;
 
-            format!("<h{}>{}</h{}>\n", level, content, level)
+            Ok(format!("<h{}>{}</h{}>\n", level, content, level))
         }
         Rule::unordered_list => {
-            let items = convert_inner_to_html(pair);
-            format!("<ul>\n{}\n</ul>\n", items.trim())
+            let items = convert_inner_to_html(pair)?;
+            Ok(format!("<ul>\n{}\n</ul>\n", items.trim()))
         }
         Rule::ordered_list => {
-            let items = convert_inner_to_html(pair);
-            format!("<ol>\n{}\n</ol>\n", items.trim())
+            let items = convert_inner_to_html(pair)?;
+            Ok(format!("<ol>\n{}\n</ol>\n", items.trim()))
         }
-        Rule::unordered_list_point => {
-            let mut inner = pair.into_inner();
-            inner.next().unwrap();
-            let line_content = inner.next().unwrap();
-            let content = convert_pair_to_html(line_content);
-            format!("<li>{}</li>\n", content)
-        }
-        Rule::ordered_list_point => {
-            let mut inner = pair.into_inner();
-            inner.next().unwrap();
-            let line_content = inner.next().unwrap();
-            let content = convert_pair_to_html(line_content);
-            format!("<li>{}</li>\n", content)
+        Rule::unordered_list_point | Rule::ordered_list_point => {
+            let content = convert_inner_to_html(pair)?;
+            Ok(format!("<li>{}</li>\n", content.trim()))
         }
         Rule::paragraph => {
-            let content = convert_inner_to_html(pair);
-            format!("<p>{}</p>\n", content.trim())
+            let content = convert_inner_to_html(pair)?;
+            Ok(format!("<p>{}</p>\n", content.trim()))
         }
         Rule::bold_italic => {
-            let inner_html = convert_inner_to_html(pair);
-            format!("<strong><em>{}</em></strong>", inner_html)
+            let inner_html = convert_inner_to_html(pair)?;
+            Ok(format!("<strong><em>{}</em></strong>", inner_html))
         }
         Rule::bold => {
-            let inner_html = convert_inner_to_html(pair);
-            format!("<strong>{}</strong>", inner_html)
+            let inner_html = convert_inner_to_html(pair)?;
+            Ok(format!("<strong>{}</strong>", inner_html))
         }
         Rule::italic => {
-            let inner_html = convert_inner_to_html(pair);
-            format!("<em>{}</em>", inner_html)
+            let inner_html = convert_inner_to_html(pair)?;
+            Ok(format!("<em>{}</em>", inner_html))
         }
         Rule::char => {
-            pair.as_str().to_string()
+            Ok(pair.as_str().to_string())
         }
         Rule::WHITESPACE => {
-            pair.as_str().to_string()
+            Ok(pair.as_str().to_string())
         }
         _ => {
             convert_inner_to_html(pair)
