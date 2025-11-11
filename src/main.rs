@@ -1,8 +1,8 @@
+use anyhow::{Context, Result};
+use md_parser::parse_to_html;
 use std::env;
 use std::fs;
 use std::process;
-use anyhow::{Context, Result};
-use md_parser::parse_to_html;
 
 fn main() {
     if let Err(e) = run() {
@@ -14,12 +14,16 @@ fn main() {
 fn run() -> Result<()> {
     let args: Vec<String> = env::args().collect();
 
-    let program_name = args.get(0).cloned().unwrap_or_else(|| "md-parser".to_string());
+    let program_name = args
+        .first()
+        .cloned()
+        .unwrap_or_else(|| "md-parser".to_string());
     let command = args.get(1).map(|s| s.as_str());
 
     match command {
         Some("parse") => {
-            let file_path = args.get(2)
+            let file_path = args
+                .get(2)
                 .ok_or_else(|| anyhow::anyhow!("'parse' command requires a file argument"))?;
 
             let mut output_file = None;
@@ -28,7 +32,8 @@ fn run() -> Result<()> {
             while let Some(arg) = args_iter.next() {
                 match arg.as_str() {
                     "--output" => {
-                        let next_arg = args_iter.next()
+                        let next_arg = args_iter
+                            .next()
                             .ok_or_else(|| anyhow::anyhow!("--output flag requires a filename"))?;
                         output_file = Some(next_arg);
                     }
@@ -64,8 +69,7 @@ fn run_parse(file_path: &str, output_file: Option<&str>) -> Result<()> {
         .with_context(|| format!("Failed to read file '{}'", file_path))?;
 
     println!("Parsing markdown...");
-    let html = parse_to_html(&content)
-        .with_context(|| "Failed to parse markdown content")?;
+    let html = parse_to_html(&content).with_context(|| "Failed to parse markdown content")?;
     println!("Parse successful!");
 
     if let Some(output_path) = output_file {
@@ -73,7 +77,6 @@ fn run_parse(file_path: &str, output_file: Option<&str>) -> Result<()> {
             .with_context(|| format!("Error writing to file '{}'", output_path))?;
 
         println!("HTML saved to: {}", output_path);
-
     } else {
         println!("\n--- Generated HTML ---");
         println!("{}", html);

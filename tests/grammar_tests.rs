@@ -1,8 +1,7 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use pest::Parser;
 
 use md_parser::*;
-
 
 #[test]
 fn test_parse_digit() -> Result<()> {
@@ -64,7 +63,6 @@ fn test_fail_on_mismatched_bold() {
     assert!(pair.is_err(), "Parser did not fail on unclosed **");
 }
 
-
 #[test]
 fn test_parse_unordered_start() -> Result<()> {
     let input = "* ";
@@ -110,7 +108,6 @@ fn test_parse_ordered_list_point() -> Result<()> {
     assert_eq!(pair.as_str(), input);
     Ok(())
 }
-
 
 #[test]
 fn test_parse_header_start() -> Result<()> {
@@ -204,6 +201,6 @@ fn test_parse_document() -> Result<()> {
 
     assert_eq!(pair.as_str(), input);
     assert_eq!(pair.as_span().end(), input.len());
-    
+
     Ok(())
 }

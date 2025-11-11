@@ -1,5 +1,5 @@
-use pest_derive::Parser;
 use pest::Parser;
+use pest_derive::Parser;
 use thiserror::Error;
 
 #[derive(Parser)]
@@ -13,7 +13,7 @@ pub enum MarkdownError {
         line: usize,
         column: usize,
         #[source]
-        source: pest::error::Error<Rule>,
+        source: Box<pest::error::Error<Rule>>,
     },
     #[error("Invalid structure in {rule}: expected {expected} but got {actual}")]
     InvalidStructure {
@@ -32,24 +32,20 @@ pub fn parse_to_html(markdown: &str) -> Result<String, MarkdownError> {
             }
             Ok(html)
         }
-        Err(e) => {
-            match e.line_col {
-                pest::error::LineColLocation::Pos((line, column)) => {                                                                         
-                    Err(MarkdownError::ParseError {
-                            line,
-                            column,
-                            source: e,
-                        })
-                    }
-                pest::error::LineColLocation::Span((start_line, start_col), (_end_line, _end_col)) => {
-                    Err(MarkdownError::ParseError {
-                        line: start_line,
-                        column: start_col,
-                        source: e,
-                    })
-                }
+        Err(e) => match e.line_col {
+            pest::error::LineColLocation::Pos((line, column)) => Err(MarkdownError::ParseError {
+                line,
+                column,
+                source: Box::new(e),
+            }),
+            pest::error::LineColLocation::Span((start_line, start_col), (_end_line, _end_col)) => {
+                Err(MarkdownError::ParseError {
+                    line: start_line,
+                    column: start_col,
+                    source: Box::new(e),
+                })
             }
-        }
+        },
     }
 }
 
@@ -63,16 +59,13 @@ fn convert_inner_to_html(pair: pest::iterators::Pair<Rule>) -> Result<String, Ma
 
 fn convert_pair_to_html(pair: pest::iterators::Pair<Rule>) -> Result<String, MarkdownError> {
     match pair.as_rule() {
-        Rule::document |
-        Rule::block |
-        Rule::paragraph_line |
-        Rule::line_content => {
+        Rule::document | Rule::block | Rule::paragraph_line | Rule::line_content => {
             convert_inner_to_html(pair)
         }
 
         Rule::header => {
             let mut inner = pair.into_inner();
-            let header_start = inner.next().unwrap(); 
+            let header_start = inner.next().unwrap();
             let line_content = inner.next().unwrap();
 
             let level = header_start.as_str().trim().len();
@@ -108,18 +101,11 @@ fn convert_pair_to_html(pair: pest::iterators::Pair<Rule>) -> Result<String, Mar
             let inner_html = convert_inner_to_html(pair)?;
             Ok(format!("<em>{}</em>", inner_html))
         }
-        Rule::char => {
-            Ok(pair.as_str().to_string())
-        }
-        Rule::WHITESPACE => {
-            Ok(pair.as_str().to_string())
-        }
-        _ => {
-            convert_inner_to_html(pair)
-        }
+        Rule::char => Ok(pair.as_str().to_string()),
+        Rule::WHITESPACE => Ok(pair.as_str().to_string()),
+        _ => convert_inner_to_html(pair),
     }
 }
-
 
 #[cfg(test)]
 mod tests {
