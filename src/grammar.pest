@@ -1,31 +1,77 @@
+/// Match one whitespace characters (space or tab).
 WHITESPACE = { " " | "\t" }
 
+/// A document consists of zero or more blocks
+/// from the Start of Input (SOI) to the End of Input (EOI).
 document = { SOI ~ block* ~ EOI }
 
+/// A block is a main structural element.
+/// It can be a header, a list, or a paragraph.
 block = { header | unordered_list | ordered_list | paragraph }
 
+/// Match a header line.
+/// Consists of a header start, content and a new line.
 header = { header_start ~ line_content ~ new_line }
+
+/// Match an unordered list, which consists of one or more list points.
 unordered_list = { unordered_list_point+ }
+
+/// Match an ordered list, which consists of one or more numbered list points.
 ordered_list = { ordered_list_point+ }
+
+/// Match a paragraph, which onsists of one or more lines of text.
 paragraph = { paragraph_line+ }
 
+/// A line of a paragraph, which does not start as a header or list.
 paragraph_line = { !(header_start | unordered_start | ordered_start) ~ line_content ~ new_line }
+
+/// A point in an unordered list.
+/// Consists of an unordered start, content and a new line.
 unordered_list_point = { unordered_start ~ line_content ~ new_line }
+
+/// A point in an ordered list.
+/// Consists of an ordered start, content and a new line.
 ordered_list_point = { ordered_start ~ line_content ~ new_line }
 
+/// The content of a line, which can contain bold, italic or bold italic text,
+/// as well as plain characters and whitespace.
 line_content = { (bold_italic | bold | italic | char | WHITESPACE)* }
+
+/// Match bold and italic text(triple asterisks).
 bold_italic = { "***" ~ not_bold_italic_char* ~ "***" }
+
+/// Match bold text (double asterisks).
 bold = { "**" ~ not_bold_char* ~ "**" }
+
+/// Match italic text (single asterisk).
 italic = { "*" ~ not_italic_char* ~ "*" }
 
+/// Match characters that can appear inside bold italic text, not "***" or newlines.
 not_bold_italic_char = { !("***" | new_line) ~ (WHITESPACE | char) }
+
+/// Match characters that can appear inside bold text, not "**" or newlines.
 not_bold_char = { !("**" | new_line) ~ (WHITESPACE | char) }
+
+/// Match characters that can appear inside italic text, not "*" or newlines.
 not_italic_char = { !("*" | new_line) ~ (WHITESPACE | char) }
+
+/// Match any character except newline. Basic building block for text content.
 char = { !(new_line) ~ ANY }
 
+/// Match the start of a header line.
+/// Consists of 1 to 6 hash symbols, not followed by another hash and a space/end.
 header_start = { "#"{1,6} ~ !("#") ~ "" }
+
+/// Match the start of an unordered list point.
+/// Can be a dash or asterisk followed by a space.
 unordered_start = { "- " | "* " }
+
+/// Match the start of an ordered list point.
+/// Consists of one or more digits followed by a period and space.
 ordered_start = { digit+ ~ ". " }
 
+/// Match a digit character (0-9).
 digit = { '0'..'9' }
+
+/// Match a newline character in either windows (\r\n) or unix (\n) format.
 new_line = { "\r\n" | "\n" }
