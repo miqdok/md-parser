@@ -2,6 +2,7 @@
 name = "md-parser"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
 description = "A simple parser that converts basic Markdown syntax (headers, bold, italic, lists) into corresponding HTML tags"
 
 [dependencies]
