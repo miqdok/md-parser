@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use md_parser::parse_to_html;
+use md_parser_kma::parse_to_html;
 use std::env;
 use std::fs;
 use std::process;

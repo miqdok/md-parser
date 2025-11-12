@@ -1,7 +1,7 @@
 use anyhow::{Result, anyhow};
 use pest::Parser;
 
-use md_parser::*;
+use md_parser_kma::*;
 
 #[test]
 fn test_parse_digit() -> Result<()> {
